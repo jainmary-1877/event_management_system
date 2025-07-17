@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <style>
+    .section { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Dashboard</h1>
+  <div class="header-container" style="position: relative; height: 50px; padding: 0 20px; border-bottom: 1px solid #ccc;">
+    <div id="adminNameDisplay" style="float: left; line-height: 50px; font-weight: bold;"></div>
+    <button id="logoutBtn" style="position: absolute; right: 10px; top: 10px; padding: 8px 16px; cursor: pointer;">Logout</button>
+  </div>
+
+  <button onclick="showSection('create')">Create Event</button>
+  <button onclick="showSection('view')">View Events</button>
+  <button onclick="showSection('delete')">Delete Event</button>
+
+  <!-- CREATE SECTION -->
+  <div id="create" class="section">
+    <h2>Create Event</h2>
+    <form id="createForm">
+      <input type="text" id="eventName" placeholder="Event Name" required><br><br>
+      <input type="date" id="eventDate" required><br><br>
+      <textarea id="eventDescription" placeholder="Event Description"></textarea><br><br>
+      <label for="availableSeats">Available Seats:</label>
+      <input type="number" id="availableSeats" name="availableSeats" min="0" required><br><br>
+      <button type="submit">Add Event</button>
+    </form>
+  </div>
+
+  <!-- VIEW SECTION -->
+  <div id="view" class="section">
+    <h2>View Events</h2>
+    <ul id="eventList"></ul>
+  </div>
+
+  <!-- DELETE SECTION -->
+  <div id="delete" class="section">
+    <h2>Delete Event</h2>
+    <select id="deleteEventSelect"></select>
+    <button onclick="deleteEvent()">Delete Selected Event</button>
+  </div>
+
+  <script>
+    const apiBase = 'http://localhost:5000/api/events';
+    const token = localStorage.getItem('token');
+
+    // Show Admin Name
+    window.addEventListener('DOMContentLoaded', () => {
+      const adminName = localStorage.getItem('adminName') || 'Admin';
+      document.getElementById('adminNameDisplay').textContent = `Welcome, ${adminName}`;
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = 'landing.html';
+    });
+
+    // Show section logic
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+      document.getElementById(sectionId).style.display = 'block';
+
+      if (sectionId === 'view') loadEvents();
+      if (sectionId === 'delete') loadEventsForDelete();
+    }
+
+    // Create event
+    function createEvent(title, date, description, availableSeats) {
+      fetch(apiBase + '/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, date, description, availableSeats })
+      })
+      .then(res => {
+        if (!res.ok) return res.json().then(err => Promise.reject(err));
+        return res.json();
+      })
+      .then(data => {
+        alert('Event created successfully');
+        loadEvents();
+        loadEventsForDelete();
+      })
+      .catch(err => alert('Error: ' + (err.message || 'Something went wrong')));
+    }
+
+    // Handle create form submission
+    document.getElementById('createForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('eventName').value;
+      const date = document.getElementById('eventDate').value;
+      const description = document.getElementById('eventDescription').value;
+      const availableSeats = parseInt(document.getElementById('availableSeats').value);
+
+      createEvent(title, date, description, availableSeats);
+      e.target.reset();
+    });
+
+    // Load events for view section
+    function loadEvents() {
+      fetch(apiBase)
+        .then(res => res.json())
+        .then(events => {
+          const eventList = document.getElementById('eventList');
+          eventList.innerHTML = '';
+          events.forEach(event => {
+            const li = document.createElement('li');
+            li.textContent = `${event.title} - ${event.date} - Seats: ${event.availableSeats}`;
+            eventList.appendChild(li);
+          });
+        })
+        .catch(err => console.error('Error loading events:', err));
+    }
+
+    // Load events for delete section
+    function loadEventsForDelete() {
+      fetch(apiBase)
+        .then(res => res.json())
+        .then(events => {
+          const select = document.getElementById('deleteEventSelect');
+          select.innerHTML = '';
+          events.forEach(event => {
+            const option = document.createElement('option');
+            option.value = event.id;
+            option.textContent = `${event.title} - ${event.date} - Seats: ${event.availableSeats}`;
+            select.appendChild(option);
+          });
+        })
+        .catch(err => console.error('Error loading events for delete:', err));
+    }
+
+    // Delete event
+    function deleteEvent() {
+      const eventId = document.getElementById('deleteEventSelect').value;
+
+      fetch(`${apiBase}/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert('Event deleted!');
+        loadEventsForDelete();
+      })
+      .catch(err => console.error('Error deleting event:', err));
+    }
+  </script>
+
+</body>
+</html>

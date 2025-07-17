@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Signup</title>
+</head>
+<body>
+  <h2>User Signup</h2>
+  <form id="userSignupForm">
+    <label for="username">Username:</label>
+    <input type="text" id="username" required><br><br>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" required><br><br>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <p id="message" style="color:red;"></p>
+  <script>
+    document.getElementById('userSignupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  const res = await fetch('http://localhost:5000/api/users/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  const messageElem = document.getElementById('message');
+  if (res.ok) {
+    messageElem.style.color = 'green';
+    messageElem.textContent = data.message;
+  } else {
+    messageElem.style.color = 'red';
+    messageElem.textContent = data.message;
+  }
+});
+
+  </script>
